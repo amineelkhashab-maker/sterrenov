@@ -1,0 +1,2042 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0a">
+<title>Sterrenov · CRM</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --bg-card: #141414;
+    --bg-elev: #1c1c1c;
+    --border: #262626;
+    --border-strong: #333;
+    --text: #f5f5f5;
+    --text-dim: #999;
+    --text-faint: #666;
+    --accent: #d4a574;
+    --accent-dim: #8a6d4d;
+    --green: #4ade80;
+    --red: #ef4444;
+    --blue: #60a5fa;
+    --yellow: #facc15;
+    --purple: #c084fc;
+    --pink: #f9a8d4;
+    --h1: #60a5fa;
+    --h2: #facc15;
+    --h3: #ef4444;
+    --safe-top: env(safe-area-inset-top);
+    --safe-bot: env(safe-area-inset-bottom);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+    font-size: 15px;
+    line-height: 1.4;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior: none;
+  }
+  body {
+    padding-top: var(--safe-top);
+    padding-bottom: calc(72px + var(--safe-bot));
+    min-height: 100vh;
+  }
+  input, textarea, select, button {
+    font-family: inherit;
+    font-size: 16px;
+    color: var(--text);
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    width: 100%;
+    outline: none;
+    -webkit-appearance: none;
+  }
+  input:focus, textarea:focus, select:focus { border-color: var(--accent-dim); }
+  button { cursor: pointer; background: var(--accent); color: #1a1a1a; font-weight: 600; border: none; }
+  button:active { transform: scale(0.97); }
+  button.ghost { background: var(--bg-elev); color: var(--text); border: 1px solid var(--border); }
+  button.danger { background: #2a1414; color: var(--red); border: 1px solid #4a1f1f; }
+  label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .field { margin-bottom: 14px; }
+
+  /* Header */
+  .header {
+    padding: 16px 18px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    position: sticky; top: 0; z-index: 50;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+  .header h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+  .header .sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+
+  /* Bottom Nav */
+  .nav {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: rgba(10,10,10,0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    padding: 8px 4px calc(8px + var(--safe-bot));
+    z-index: 100;
+  }
+  .nav button {
+    background: none; border: none; color: var(--text-faint);
+    font-size: 10px; font-weight: 500; padding: 6px 2px;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    border-radius: 8px;
+    line-height: 1.1;
+    text-align: center;
+  }
+  .nav button.active { color: var(--accent); }
+  .nav button svg { width: 22px; height: 22px; }
+
+  /* Pages */
+  .page { display: none; padding: 18px; }
+  .page.active { display: block; animation: fadein 0.25s ease; }
+  @keyframes fadein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* Cards */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .card-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+  .card-title { font-weight: 600; font-size: 16px; }
+  .card-sub { font-size: 13px; color: var(--text-dim); }
+  .card-row { display: flex; align-items: center; gap: 10px; padding: 6px 0; font-size: 14px; }
+  .card-row svg { width: 16px; height: 16px; color: var(--text-faint); flex-shrink: 0; }
+
+  /* Stats */
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+  .stat {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+  }
+  .stat .label { font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.05em; }
+  .stat .value { font-size: 26px; font-weight: 700; margin-top: 4px; letter-spacing: -0.02em; }
+  .stat.accent .value { color: var(--accent); }
+
+  /* Badges */
+  .badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .badge.nrp200, .badge.nrp300 { background: #1a2e1a; color: var(--green); border: 1px solid #2a4a2a; }
+  .badge.lead100, .badge.lead150 { background: #1a1a2e; color: var(--blue); border: 1px solid #2a2a4a; }
+  .badge.zone-h1 { background: #1a2540; color: var(--h1); border: 1px solid #2c3e6e; }
+  .badge.zone-h2 { background: #3d3517; color: var(--h2); border: 1px solid #6a5b1f; }
+  .badge.zone-h3 { background: #3d1717; color: var(--h3); border: 1px solid #6a1f1f; }
+  .badge.bleu { background: #1a2540; color: var(--h1); border: 1px solid #2c3e6e; }
+  .badge.jaune { background: #3d3517; color: var(--h2); border: 1px solid #6a5b1f; }
+  .badge.violet { background: #2c1d3d; color: var(--purple); border: 1px solid #4d326a; }
+  .badge.rose { background: #3d1f2e; color: var(--pink); border: 1px solid #6a324f; }
+
+  /* Buttons row */
+  .btn-row { display: flex; gap: 8px; margin-top: 10px; }
+  .btn-row button { flex: 1; padding: 10px; font-size: 13px; }
+
+  /* FAB */
+  .fab {
+    position: fixed;
+    bottom: calc(82px + var(--safe-bot));
+    right: 18px;
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #0a0a0a;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 8px 24px rgba(212, 165, 116, 0.3);
+    z-index: 90;
+    border: none;
+    font-size: 28px;
+    font-weight: 300;
+    padding: 0;
+  }
+
+  /* Modal */
+  .modal-bg {
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    z-index: 200;
+    display: none;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-bg.show { display: flex; animation: fadein 0.2s; }
+  .modal {
+    background: var(--bg-card);
+    width: 100%;
+    max-height: 92vh;
+    border-radius: 20px 20px 0 0;
+    border-top: 1px solid var(--border);
+    padding: 14px 18px calc(18px + var(--safe-bot));
+    overflow-y: auto;
+    animation: slideup 0.3s cubic-bezier(0.2, 0.9, 0.3, 1.1);
+  }
+  @keyframes slideup { from { transform: translateY(100%); } to { transform: none; } }
+  .modal-handle {
+    width: 36px; height: 4px;
+    background: var(--border-strong);
+    border-radius: 2px;
+    margin: 0 auto 14px;
+  }
+  .modal h2 { font-size: 20px; margin-bottom: 16px; }
+
+  /* Phone link */
+  .phone-link {
+    color: var(--accent);
+    text-decoration: none;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+
+  /* Empty state */
+  .empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-faint);
+  }
+  .empty svg { width: 48px; height: 48px; opacity: 0.4; margin-bottom: 12px; }
+
+  /* Eligibility result */
+  .elig-result {
+    background: linear-gradient(135deg, var(--bg-card), var(--bg-elev));
+    border: 1px solid var(--border-strong);
+    border-radius: 14px;
+    padding: 18px;
+    margin-top: 16px;
+  }
+  .elig-result h3 { font-size: 14px; color: var(--text-dim); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.05em; }
+  .elig-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .elig-row:last-child { border: none; }
+  .elig-row .k { color: var(--text-dim); font-size: 13px; }
+  .elig-row .v { font-weight: 600; }
+
+  /* Filter chips */
+  .chips { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+  .chips::-webkit-scrollbar { display: none; }
+  .chip {
+    flex-shrink: 0;
+    padding: 7px 13px;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    font-size: 12px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: 500;
+  }
+  .chip.active { background: var(--accent); color: #1a1a1a; border-color: var(--accent); font-weight: 600; }
+  .chip .count {
+    background: rgba(255,255,255,0.08);
+    color: var(--text-dim);
+    padding: 1px 6px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 600;
+    min-width: 16px;
+    text-align: center;
+  }
+  .chip.active .count { background: rgba(0,0,0,0.2); color: #1a1a1a; }
+
+  /* Filter groups - 2 rows */
+  .filter-section { margin-bottom: 8px; }
+  .filter-section .label-tiny {
+    font-size: 10px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 6px;
+    font-weight: 600;
+    padding-left: 2px;
+  }
+
+  /* View toggle */
+  .view-toggle {
+    display: flex;
+    gap: 0;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 3px;
+    margin-bottom: 12px;
+  }
+  .view-toggle button {
+    flex: 1;
+    background: transparent;
+    color: var(--text-dim);
+    border: none;
+    padding: 7px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 7px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+  }
+  .view-toggle button.active {
+    background: var(--bg-card);
+    color: var(--text);
+  }
+  .view-toggle button svg { width: 14px; height: 14px; }
+
+  /* Compact list */
+  .compact-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 6px;
+  }
+  .compact-row:active { background: var(--bg-elev); }
+  .compact-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .compact-main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .compact-name {
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .compact-meta {
+    font-size: 11px;
+    color: var(--text-dim);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .compact-meta .badge {
+    font-size: 9px;
+    padding: 1px 5px;
+  }
+  .compact-call {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #0a0a0a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    flex-shrink: 0;
+  }
+  .compact-call svg { width: 16px; height: 16px; }
+  .compact-rdv {
+    font-size: 10px;
+    color: var(--accent);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* Address autocomplete */
+  .autocomplete-list {
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    margin-top: 4px;
+    max-height: 240px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .autocomplete-item {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .autocomplete-item:last-child { border: none; }
+  .autocomplete-item:active { background: var(--bg-card); }
+  .autocomplete-item .a-main { color: var(--text); font-weight: 500; }
+  .autocomplete-item .a-sub { font-size: 12px; color: var(--text-dim); margin-top: 2px; }
+  .autocomplete-loading {
+    padding: 14px;
+    text-align: center;
+    color: var(--text-faint);
+    font-size: 12px;
+  }
+
+  /* Section title */
+  .section-title {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 20px 0 10px;
+    font-weight: 600;
+  }
+  .section-title:first-child { margin-top: 0; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: calc(100px + var(--safe-bot));
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-elev);
+    border: 1px solid var(--border-strong);
+    padding: 12px 18px;
+    border-radius: 12px;
+    z-index: 300;
+    font-size: 14px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s;
+  }
+  .toast.show { opacity: 1; }
+
+  /* Calendar */
+  .cal-day {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 14px;
+    margin-bottom: 10px;
+  }
+  .cal-date {
+    font-size: 13px;
+    color: var(--accent);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 10px;
+  }
+  .cal-event {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px;
+    background: var(--bg-elev);
+    border-radius: 10px;
+    margin-bottom: 6px;
+  }
+  .cal-event:last-child { margin-bottom: 0; }
+  .cal-time {
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: var(--accent);
+    font-size: 15px;
+    min-width: 50px;
+  }
+  .cal-name { font-size: 14px; font-weight: 500; }
+  .cal-phone { font-size: 12px; color: var(--text-dim); }
+
+  /* Settings */
+  .settings-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .settings-row:last-child { border: none; }
+
+  /* Switch */
+  .switch {
+    position: relative;
+    width: 44px; height: 26px;
+    background: var(--border-strong);
+    border-radius: 13px;
+    transition: background 0.2s;
+    flex-shrink: 0;
+  }
+  .switch.on { background: var(--green); }
+  .switch::after {
+    content: '';
+    position: absolute;
+    top: 2px; left: 2px;
+    width: 22px; height: 22px;
+    background: white;
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+  .switch.on::after { transform: translateX(18px); }
+
+  /* Action bar in lists */
+  .item-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+  .item-actions button {
+    flex: 1;
+    min-width: 0;
+    padding: 8px 10px;
+    font-size: 12px;
+    font-weight: 500;
+  }
+
+  /* Status banner in card */
+  .status-banner {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+  .status-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--yellow);
+  }
+  .status-dot.waiting { background: var(--blue); }
+  .status-dot.searching { background: var(--purple); }
+  .status-dot.ready { background: var(--green); }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1 id="pageTitle">Dossiers validés</h1>
+  <div class="sub" id="pageSub">Vue d'ensemble de l'activité</div>
+</div>
+
+<!-- =================== PAGE 1: DOSSIERS VALIDÉS =================== -->
+<div class="page active" id="page-dossiers">
+  <div class="stats">
+    <div class="stat">
+      <div class="label">Dossiers</div>
+      <div class="value" id="statCount">0</div>
+    </div>
+    <div class="stat accent">
+      <div class="label">CA total</div>
+      <div class="value" id="statTotal">0 €</div>
+    </div>
+  </div>
+
+  <div class="chips" id="dossierFilters">
+    <div class="chip active" data-filter="all">Tous</div>
+    <div class="chip" data-filter="nrp">NRP</div>
+    <div class="chip" data-filter="lead">Lead</div>
+  </div>
+
+  <div id="dossiersList"></div>
+</div>
+
+<!-- =================== PAGE 2: CONTACTS =================== -->
+<div class="page" id="page-contacts">
+  <div class="view-toggle">
+    <button id="viewCompact" class="active" onclick="setView('compact')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+      Liste
+    </button>
+    <button id="viewExpanded" onclick="setView('expanded')">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 10h16M4 14h16M4 18h16" opacity="0"/><rect x="4" y="5" width="16" height="6" rx="1.5"/><rect x="4" y="13" width="16" height="6" rx="1.5"/></svg>
+      Cartes
+    </button>
+  </div>
+
+  <div class="filter-section">
+    <div class="label-tiny">Statut</div>
+    <div class="chips" id="contactFilters">
+      <div class="chip active" data-filter="all">Tous <span class="count" id="c_all">0</span></div>
+      <div class="chip" data-filter="nrp200">NRP 200€ <span class="count" id="c_nrp200">0</span></div>
+      <div class="chip" data-filter="nrp300">NRP 300€ <span class="count" id="c_nrp300">0</span></div>
+      <div class="chip" data-filter="lead150">Lead 150€ <span class="count" id="c_lead150">0</span></div>
+      <div class="chip" data-filter="lead100">Lead 100€ <span class="count" id="c_lead100">0</span></div>
+    </div>
+  </div>
+
+  <div class="filter-section">
+    <div class="label-tiny">Étape</div>
+    <div class="chips" id="etapeFilters">
+      <div class="chip active" data-etape="all">Toutes <span class="count" id="e_all">0</span></div>
+      <div class="chip" data-etape="a_rappeler">À rappeler <span class="count" id="e_a_rappeler">0</span></div>
+      <div class="chip" data-etape="attente_doc">Attente doc <span class="count" id="e_attente_doc">0</span></div>
+      <div class="chip" data-etape="recherche_avis">Recherche avis <span class="count" id="e_recherche_avis">0</span></div>
+      <div class="chip" data-etape="doc_recu">Doc reçu <span class="count" id="e_doc_recu">0</span></div>
+    </div>
+  </div>
+
+  <div id="contactsList"></div>
+</div>
+
+<!-- =================== PAGE 3: PLANNING =================== -->
+<div class="page" id="page-planning">
+  <div class="stats">
+    <div class="stat">
+      <div class="label">Aujourd'hui</div>
+      <div class="value" id="planToday">0</div>
+    </div>
+    <div class="stat accent">
+      <div class="label">Cette semaine</div>
+      <div class="value" id="planWeek">0</div>
+    </div>
+  </div>
+
+  <div id="planningList"></div>
+</div>
+
+<!-- =================== PAGE 4: ÉLIGIBILITÉ TEST =================== -->
+<div class="page" id="page-elig">
+  <div class="card">
+    <div class="section-title">Identité</div>
+    <div class="field"><label>Prénom</label><input id="e_prenom" type="text" autocomplete="given-name"></div>
+    <div class="field"><label>Nom</label><input id="e_nom" type="text" autocomplete="family-name"></div>
+    <div class="field"><label>Téléphone</label><input id="e_tel" type="tel" autocomplete="tel"></div>
+    <div class="field"><label>Email</label><input id="e_email" type="email" autocomplete="email"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Adresse des travaux</div>
+    <div class="field">
+      <label>Adresse</label>
+      <input id="e_adresse" type="text" autocomplete="street-address" placeholder="Commencer à taper…">
+      <div id="addressSuggestions" style="margin-top:6px;"></div>
+    </div>
+    <div class="field"><label>Ville</label><input id="e_ville" type="text"></div>
+    <div class="field"><label>Code postal</label><input id="e_cp" type="tel" inputmode="numeric" maxlength="5" placeholder="75001"></div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Statut occupant</div>
+    <div class="field">
+      <label>Type</label>
+      <select id="e_statut">
+        <option value="">— Choisir —</option>
+        <option>Propriétaire maison</option>
+        <option>Locataire</option>
+        <option>Propriétaire occupant</option>
+        <option>Propriétaire bailleur</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Logement</div>
+    <div class="field">
+      <label>Ancienneté (minimum 2 ans)</label>
+      <input id="e_anciennete" type="tel" inputmode="numeric" placeholder="Ex: 15">
+    </div>
+    <div class="field">
+      <label>Superficie (m²)</label>
+      <input id="e_superficie" type="tel" inputmode="numeric" placeholder="Ex: 90">
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Chauffage actuel</div>
+    <div class="field">
+      <label>Mode de chauffage</label>
+      <select id="e_mode">
+        <option value="">— Choisir —</option>
+        <option>Fioul</option>
+        <option>Gaz</option>
+        <option>Charbon</option>
+        <option>Électrique avec ancien système hydraulique</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Type d'émetteurs</label>
+      <select id="e_emetteur">
+        <option value="">— Choisir —</option>
+        <option>Radiateurs à eau uniquement</option>
+        <option>Plancher chauffant uniquement</option>
+        <option>Plancher chauffant + radiateurs à eau</option>
+      </select>
+    </div>
+    <div class="field">
+      <label>Localisation de la chaudière</label>
+      <input id="e_localchaud" type="text" placeholder="Ex: garage, cellier, cuisine…">
+    </div>
+    <div class="field">
+      <label>Alimentation électrique</label>
+      <select id="e_alim">
+        <option value="">— Choisir —</option>
+        <option>Monophasé</option>
+        <option>Triphasé</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="section-title">Foyer fiscal</div>
+    <div class="field">
+      <label>Nombre de personnes sur l'avis d'impôt</label>
+      <input id="e_pers" type="tel" inputmode="numeric" placeholder="Ex: 3" min="1">
+    </div>
+    <div class="field">
+      <label>RFR (Revenu Fiscal de Référence)</label>
+      <input id="e_rfr" type="tel" inputmode="numeric" placeholder="Ex: 35000">
+    </div>
+  </div>
+
+  <div id="eligResult"></div>
+
+  <div class="btn-row">
+    <button class="ghost" onclick="resetElig()">Réinitialiser</button>
+    <button onclick="saveFiche()">Enregistrer la fiche</button>
+  </div>
+</div>
+
+<!-- =================== PAGE 5: FICHES =================== -->
+<div class="page" id="page-fiches">
+  <div class="stats">
+    <div class="stat">
+      <div class="label">Fiches</div>
+      <div class="value" id="fichesCount">0</div>
+    </div>
+    <div class="stat accent">
+      <div class="label">Éligibles</div>
+      <div class="value" id="fichesEligible">0</div>
+    </div>
+  </div>
+
+  <div class="btn-row" style="margin-bottom: 14px;">
+    <button class="ghost" onclick="exportAllData()">Exporter données</button>
+    <button class="ghost" onclick="document.getElementById('importFile').click()">Importer</button>
+    <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)">
+  </div>
+
+  <div id="fichesList"></div>
+</div>
+
+<!-- =================== BOTTOM NAV =================== -->
+<div class="nav">
+  <button class="active" data-page="dossiers" onclick="switchPage('dossiers')">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+    Dossiers
+  </button>
+  <button data-page="contacts" onclick="switchPage('contacts')">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+    Contacts
+  </button>
+  <button data-page="planning" onclick="switchPage('planning')">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+    Planning
+  </button>
+  <button data-page="elig" onclick="switchPage('elig')">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+    Test
+  </button>
+  <button data-page="fiches" onclick="switchPage('fiches')">
+    <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+    Fiches
+  </button>
+</div>
+
+<!-- FAB -->
+<button class="fab" id="fabBtn" onclick="openContactModal()">+</button>
+
+<!-- =================== MODAL CONTACT =================== -->
+<div class="modal-bg" id="contactModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2 id="modalTitle">Nouveau contact</h2>
+
+    <div class="btn-row" id="modalValidateRow" style="display:none; margin: 0 0 16px 0;">
+      <button onclick="validateContact()" style="background:linear-gradient(135deg, #4ade80, #22c55e); color:#0a0a0a; font-size:15px; padding:14px; font-weight:700; box-shadow:0 4px 16px rgba(74,222,128,0.25);">✓ Valider le dossier</button>
+    </div>
+
+    <div class="field">
+      <label>Statut</label>
+      <select id="m_statut">
+        <option value="nrp200">NRP 200€</option>
+        <option value="nrp300">NRP 300€</option>
+        <option value="lead150">Lead 150€</option>
+        <option value="lead100">Lead 100€</option>
+      </select>
+    </div>
+
+    <div class="field"><label>Nom complet</label><input id="m_nom" type="text"></div>
+    <div class="field"><label>Téléphone</label><input id="m_tel" type="tel"></div>
+
+    <div class="field">
+      <label>Date du rendez-vous (call)</label>
+      <input id="m_rdv_date" type="date">
+    </div>
+    <div class="field">
+      <label>Heure du rendez-vous</label>
+      <input id="m_rdv_heure" type="time">
+    </div>
+
+    <div class="field">
+      <label>Étape</label>
+      <select id="m_etape">
+        <option value="a_rappeler">À rappeler</option>
+        <option value="attente_doc">Attente de doc</option>
+        <option value="recherche_avis">Recherche avis d'impôt</option>
+        <option value="doc_recu">Doc reçu — prêt à valider</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label>Commentaire</label>
+      <textarea id="m_commentaire" rows="3"></textarea>
+    </div>
+
+    <div class="btn-row">
+      <button class="ghost" onclick="closeContactModal()">Annuler</button>
+      <button onclick="saveContact()">Enregistrer</button>
+    </div>
+    <div class="btn-row" id="modalDeleteRow" style="display:none;">
+      <button class="danger" onclick="deleteContact()">Supprimer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- Confirm dialog -->
+<div class="modal-bg" id="confirmModal" style="align-items:center;">
+  <div style="background:var(--bg-card); border:1px solid var(--border-strong); border-radius:18px; padding:22px; margin:18px; max-width:340px; width:calc(100% - 36px); animation:fadein 0.2s;">
+    <div id="confirmTitle" style="font-size:17px; font-weight:600; margin-bottom:8px;"></div>
+    <div id="confirmMsg" style="font-size:14px; color:var(--text-dim); margin-bottom:18px; line-height:1.5;"></div>
+    <div style="display:flex; gap:8px;">
+      <button class="ghost" id="confirmCancel" style="flex:1;">Annuler</button>
+      <button id="confirmOk" style="flex:1;">Confirmer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Fiche details modal -->
+<div class="modal-bg" id="ficheDetailsModal">
+  <div class="modal">
+    <div class="modal-handle"></div>
+    <h2>Fiche d'éligibilité</h2>
+    <div id="ficheDetailsBody"></div>
+    <div class="btn-row" style="margin-top:16px;">
+      <button class="ghost" onclick="closeFicheDetails()">Fermer</button>
+      <button onclick="downloadCurrentFichePDF()">Télécharger PDF</button>
+    </div>
+    <div class="btn-row" style="margin-top:8px;">
+      <button class="ghost" onclick="shareCurrentFichePDF()">Partager PDF</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* =====================================================
+   DATA STORE
+   ===================================================== */
+const STORE = {
+  contacts: [],
+  dossiers: [],
+  fiches: [],
+};
+
+function load() {
+  try {
+    const raw = localStorage.getItem('sterrenov_v1');
+    if (raw) Object.assign(STORE, JSON.parse(raw));
+  } catch(e) { console.warn(e); }
+}
+function save() {
+  localStorage.setItem('sterrenov_v1', JSON.stringify(STORE));
+}
+load();
+
+/* =====================================================
+   ZONE CLIMATIQUE — Mapping département → zone H1/H2/H3
+   Source: arrêté RT2012, repris pour CEE
+   ===================================================== */
+const ZONES = {
+  H1: ['01','02','03','05','06','07','08','10','15','19','21','23','25','26','27','28','38','39','42','43','45','51','52','54','55','57','58','59','60','61','62','63','67','68','69','70','71','73','74','76','77','78','80','87','88','89','90','91','92','93','94','95'],
+  H2: ['09','12','14','15','16','17','18','22','23','24','29','32','33','35','36','37','40','41','44','46','47','48','49','50','53','56','64','65','72','79','81','82','85','86'],
+  H3: ['11','13','20','2A','2B','30','34','66','83','84']
+};
+// Plafonds RFR — Île-de-France
+const RFR_IDF = {
+  bleu:   [24031, 35270, 42357, 49455, 56580, 7116],
+  jaune:  [29253, 42933, 51564, 60208, 68877, 8663],
+  violet: [40851, 60051, 71846, 84562, 96817, 12257],
+};
+// Plafonds RFR — Hors Île-de-France
+const RFR_HORS = {
+  bleu:   [17363, 25393, 30540, 35676, 40835, 5151],
+  jaune:  [22259, 32553, 39148, 45735, 52348, 6598],
+  violet: [31185, 45842, 55196, 64550, 73907, 9357],
+};
+
+const DEPTS_IDF = ['75','77','78','91','92','93','94','95'];
+
+function getZone(cp) {
+  if (!cp || cp.length < 2) return null;
+  let dept = cp.substring(0, 2);
+  // Corse
+  if (dept === '20') {
+    const num = parseInt(cp);
+    dept = (num >= 20200) ? '2B' : '2A';
+  }
+  if (ZONES.H1.includes(dept)) return 'H1';
+  if (ZONES.H2.includes(dept)) return 'H2';
+  if (ZONES.H3.includes(dept)) return 'H3';
+  return null;
+}
+function isIDF(cp) {
+  if (!cp || cp.length < 2) return false;
+  return DEPTS_IDF.includes(cp.substring(0, 2));
+}
+function getRFRProfile(cp, nbPers, rfr) {
+  if (!cp || !nbPers || !rfr) return null;
+  const table = isIDF(cp) ? RFR_IDF : RFR_HORS;
+  const idx = Math.min(Math.max(nbPers - 1, 0), 4);
+  const supp = nbPers > 5 ? (nbPers - 5) : 0;
+
+  const bleuMax  = table.bleu[idx]   + supp * table.bleu[5];
+  const jauneMax = table.jaune[idx]  + supp * table.jaune[5];
+  const violMax  = table.violet[idx] + supp * table.violet[5];
+
+  if (rfr <= bleuMax)  return { profile: 'bleu',   label: 'Très modeste',  max: bleuMax };
+  if (rfr <= jauneMax) return { profile: 'jaune',  label: 'Modeste',       max: jauneMax };
+  if (rfr <= violMax)  return { profile: 'violet', label: 'Intermédiaire', max: violMax };
+  return { profile: 'rose', label: 'Aisé (non éligible CEE)', max: violMax };
+}
+
+/* =====================================================
+   PAGE SWITCHING
+   ===================================================== */
+const PAGE_INFO = {
+  dossiers: { title: 'Dossiers validés', sub: 'Vue d\'ensemble de l\'activité', fab: false },
+  contacts: { title: 'Contacts', sub: 'Suivi des leads et appels', fab: true },
+  planning: { title: 'Planning', sub: 'Calls à venir', fab: false },
+  elig:     { title: 'Test d\'éligibilité', sub: 'Pompe à chaleur CEE', fab: false },
+  fiches:   { title: 'Fiches d\'éligibilité', sub: 'Historique et exports', fab: false },
+};
+
+function switchPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  document.querySelector(`.nav button[data-page="${name}"]`).classList.add('active');
+  document.getElementById('pageTitle').textContent = PAGE_INFO[name].title;
+  document.getElementById('pageSub').textContent = PAGE_INFO[name].sub;
+  document.getElementById('fabBtn').style.display = PAGE_INFO[name].fab ? 'flex' : 'none';
+  if (name === 'dossiers') renderDossiers();
+  if (name === 'contacts') renderContacts();
+  if (name === 'planning') renderPlanning();
+  if (name === 'fiches') renderFiches();
+  window.scrollTo(0, 0);
+}
+
+/* =====================================================
+   TOAST
+   ===================================================== */
+let toastTimer;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function askConfirm(title, msg, okText = 'Confirmer', okStyle = '') {
+  return new Promise(resolve => {
+    document.getElementById('confirmTitle').textContent = title;
+    document.getElementById('confirmMsg').textContent = msg;
+    const okBtn = document.getElementById('confirmOk');
+    const cancelBtn = document.getElementById('confirmCancel');
+    okBtn.textContent = okText;
+    okBtn.style.cssText = okStyle;
+    const modal = document.getElementById('confirmModal');
+    modal.classList.add('show');
+    const cleanup = (val) => {
+      modal.classList.remove('show');
+      okBtn.onclick = null;
+      cancelBtn.onclick = null;
+      resolve(val);
+    };
+    okBtn.onclick = () => cleanup(true);
+    cancelBtn.onclick = () => cleanup(false);
+  });
+}
+
+/* =====================================================
+   STATUS HELPERS
+   ===================================================== */
+const STATUS_LABELS = {
+  nrp200: 'NRP 200€',
+  nrp300: 'NRP 300€',
+  lead150: 'Lead 150€',
+  lead100: 'Lead 100€',
+};
+const STATUS_AMOUNTS = {
+  nrp200: 200, nrp300: 300, lead150: 150, lead100: 100,
+};
+// Validation amounts per spec: 250€/300€ for nrp dossier, 150€ for lead
+const VALIDATION_AMOUNTS = {
+  nrp200: 250,
+  nrp300: 300,
+  lead150: 150,
+  lead100: 150,
+};
+const ETAPE_LABELS = {
+  a_rappeler: 'À rappeler',
+  attente_doc: 'Attente de doc',
+  recherche_avis: 'Recherche avis d\'impôt',
+  doc_recu: 'Doc reçu — prêt à valider',
+};
+const ETAPE_DOTS = {
+  a_rappeler: '',
+  attente_doc: 'waiting',
+  recherche_avis: 'searching',
+  doc_recu: 'ready',
+};
+
+/* =====================================================
+   CONTACTS
+   ===================================================== */
+let editingContactId = null;
+let contactFilter = 'all';
+let etapeFilter = 'all';
+let contactView = localStorage.getItem('sterrenov_view') || 'compact';
+
+function setView(v) {
+  contactView = v;
+  localStorage.setItem('sterrenov_view', v);
+  document.getElementById('viewCompact').classList.toggle('active', v === 'compact');
+  document.getElementById('viewExpanded').classList.toggle('active', v === 'expanded');
+  renderContacts();
+}
+
+function openContactModal(id) {
+  editingContactId = id || null;
+  if (id) {
+    const c = STORE.contacts.find(c => c.id === id);
+    if (!c) return;
+    document.getElementById('modalTitle').textContent = 'Modifier le contact';
+    document.getElementById('m_statut').value = c.statut;
+    document.getElementById('m_nom').value = c.nom || '';
+    document.getElementById('m_tel').value = c.tel || '';
+    document.getElementById('m_rdv_date').value = c.rdv_date || '';
+    document.getElementById('m_rdv_heure').value = c.rdv_heure || '';
+    document.getElementById('m_etape').value = c.etape || 'a_rappeler';
+    document.getElementById('m_commentaire').value = c.commentaire || '';
+    document.getElementById('modalValidateRow').style.display = 'flex';
+    document.getElementById('modalDeleteRow').style.display = 'flex';
+  } else {
+    document.getElementById('modalTitle').textContent = 'Nouveau contact';
+    ['m_nom','m_tel','m_rdv_date','m_rdv_heure','m_commentaire'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('m_statut').value = 'nrp200';
+    document.getElementById('m_etape').value = 'a_rappeler';
+    document.getElementById('modalValidateRow').style.display = 'none';
+    document.getElementById('modalDeleteRow').style.display = 'none';
+  }
+  document.getElementById('contactModal').classList.add('show');
+}
+
+function closeContactModal() {
+  document.getElementById('contactModal').classList.remove('show');
+  editingContactId = null;
+}
+
+function saveContact() {
+  const data = {
+    statut: document.getElementById('m_statut').value,
+    nom: document.getElementById('m_nom').value.trim(),
+    tel: document.getElementById('m_tel').value.trim(),
+    rdv_date: document.getElementById('m_rdv_date').value,
+    rdv_heure: document.getElementById('m_rdv_heure').value,
+    etape: document.getElementById('m_etape').value,
+    commentaire: document.getElementById('m_commentaire').value.trim(),
+  };
+  if (!data.nom) { toast('Nom requis'); return; }
+
+  if (editingContactId) {
+    const c = STORE.contacts.find(c => c.id === editingContactId);
+    Object.assign(c, data);
+  } else {
+    STORE.contacts.push({ id: Date.now().toString(), ...data, created: Date.now() });
+  }
+  save();
+  closeContactModal();
+  toast('Contact enregistré');
+  renderContacts();
+}
+
+async function deleteContact() {
+  if (!editingContactId) return;
+  const ok = await askConfirm('Supprimer ce contact ?', 'Cette action est définitive.', 'Supprimer', 'background:#ef4444; color:white; font-weight:600;');
+  if (!ok) return;
+  STORE.contacts = STORE.contacts.filter(c => c.id !== editingContactId);
+  save();
+  closeContactModal();
+  renderContacts();
+  toast('Contact supprimé');
+}
+
+async function validateContact() {
+  if (!editingContactId) return;
+  await doValidate(editingContactId);
+}
+
+async function quickValidate(id) {
+  await doValidate(id);
+}
+
+async function doValidate(id) {
+  const c = STORE.contacts.find(c => c.id === id);
+  if (!c) return;
+  const montant = VALIDATION_AMOUNTS[c.statut] || 0;
+  const ok = await askConfirm(
+    'Valider ce dossier ?',
+    `${c.nom} sera ajouté aux dossiers validés pour +${montant}€.`,
+    `✓ Valider +${montant}€`,
+    'background:linear-gradient(135deg, #4ade80, #22c55e); color:#0a0a0a; font-weight:700;'
+  );
+  if (!ok) return;
+  STORE.dossiers.push({
+    id: Date.now().toString(),
+    nom: c.nom,
+    tel: c.tel,
+    statut: c.statut,
+    montant: montant,
+    validated: Date.now(),
+    contactId: c.id,
+  });
+  STORE.contacts = STORE.contacts.filter(x => x.id !== c.id);
+  save();
+  if (editingContactId === id) closeContactModal();
+  toast(`Dossier validé : +${montant}€`);
+  renderContacts();
+  renderDossiers();
+}
+
+function updateFilterCounts() {
+  const all = STORE.contacts;
+  document.getElementById('c_all').textContent = all.length;
+  document.getElementById('c_nrp200').textContent = all.filter(c => c.statut === 'nrp200').length;
+  document.getElementById('c_nrp300').textContent = all.filter(c => c.statut === 'nrp300').length;
+  document.getElementById('c_lead150').textContent = all.filter(c => c.statut === 'lead150').length;
+  document.getElementById('c_lead100').textContent = all.filter(c => c.statut === 'lead100').length;
+  document.getElementById('e_all').textContent = all.length;
+  document.getElementById('e_a_rappeler').textContent = all.filter(c => c.etape === 'a_rappeler').length;
+  document.getElementById('e_attente_doc').textContent = all.filter(c => c.etape === 'attente_doc').length;
+  document.getElementById('e_recherche_avis').textContent = all.filter(c => c.etape === 'recherche_avis').length;
+  document.getElementById('e_doc_recu').textContent = all.filter(c => c.etape === 'doc_recu').length;
+}
+
+function renderContacts() {
+  updateFilterCounts();
+  const list = document.getElementById('contactsList');
+
+  let filtered = STORE.contacts;
+  if (contactFilter !== 'all') filtered = filtered.filter(c => c.statut === contactFilter);
+  if (etapeFilter !== 'all') filtered = filtered.filter(c => c.etape === etapeFilter);
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="empty">
+      <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+      <div>${STORE.contacts.length === 0 ? 'Aucun contact' : 'Aucun résultat avec ces filtres'}</div>
+      <div style="font-size:12px; margin-top:6px;">${STORE.contacts.length === 0 ? 'Touchez le + pour ajouter' : 'Modifiez les filtres ci-dessus'}</div>
+    </div>`;
+    return;
+  }
+
+  // Sort: by RDV date asc (those with RDV first), then by created desc
+  const sorted = [...filtered].sort((a, b) => {
+    if (a.rdv_date && b.rdv_date) return (a.rdv_date + (a.rdv_heure || '')).localeCompare(b.rdv_date + (b.rdv_heure || ''));
+    if (a.rdv_date) return -1;
+    if (b.rdv_date) return 1;
+    return b.created - a.created;
+  });
+
+  if (contactView === 'compact') {
+    list.innerHTML = sorted.map(c => {
+      const dotColor = ETAPE_COLORS[c.etape] || '#666';
+      const statutShort = STATUS_LABELS[c.statut].replace('€','').replace(' ','');
+      const canValidate = c.etape === 'doc_recu';
+      return `
+        <div class="compact-row" onclick="openContactModal('${c.id}')">
+          <div class="compact-dot" style="background:${dotColor};"></div>
+          <div class="compact-main">
+            <div class="compact-name">${escapeHtml(c.nom)}</div>
+            <div class="compact-meta">
+              <span class="badge ${c.statut}">${statutShort}</span>
+              <span>·</span>
+              <span>${ETAPE_LABELS[c.etape] || ''}</span>
+            </div>
+          </div>
+          ${c.rdv_date ? `<div class="compact-rdv">${formatDateShort(c.rdv_date)}${c.rdv_heure ? '<br>'+c.rdv_heure : ''}</div>` : ''}
+          ${canValidate ? `<button onclick="event.stopPropagation(); quickValidate('${c.id}')" style="background:linear-gradient(135deg, #4ade80, #22c55e); color:#0a0a0a; width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; padding:0; flex-shrink:0; font-size:18px; font-weight:700;" aria-label="Valider">✓</button>` : ''}
+          ${c.tel ? `<a href="tel:${c.tel}" class="compact-call" onclick="event.stopPropagation()" aria-label="Appeler">
+            <svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+          </a>` : ''}
+        </div>
+      `;
+    }).join('');
+  } else {
+    list.innerHTML = sorted.map(c => `
+      <div class="card" onclick="openContactModal('${c.id}')">
+        <div class="card-header">
+          <div>
+            <div class="card-title">${escapeHtml(c.nom)}</div>
+            <div class="card-sub">
+              <span class="badge ${c.statut}">${STATUS_LABELS[c.statut]}</span>
+            </div>
+            <div class="status-banner">
+              <span class="status-dot ${ETAPE_DOTS[c.etape] || ''}"></span>
+              ${ETAPE_LABELS[c.etape] || ''}
+            </div>
+          </div>
+        </div>
+        ${c.tel ? `<div class="card-row" style="padding:8px 0;" onclick="event.stopPropagation()">
+          <a href="tel:${c.tel}" class="phone-link" style="display:inline-flex; align-items:center; gap:8px; background:rgba(212,165,116,0.1); padding:8px 12px; border-radius:8px; border:1px solid rgba(212,165,116,0.2);">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="width:16px; height:16px;"><path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+            ${escapeHtml(c.tel)}
+          </a>
+        </div>` : ''}
+        ${c.rdv_date ? `<div class="card-row">
+          <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+          ${formatDate(c.rdv_date)}${c.rdv_heure ? ' à ' + c.rdv_heure : ''}
+        </div>` : ''}
+        ${c.commentaire ? `<div class="card-row" style="color:var(--text-dim); font-size:13px;">
+          ${escapeHtml(c.commentaire)}
+        </div>` : ''}
+      </div>
+    `).join('');
+  }
+}
+
+// Colors for etape dots in compact view
+const ETAPE_COLORS = {
+  a_rappeler: '#facc15',
+  attente_doc: '#60a5fa',
+  recherche_avis: '#c084fc',
+  doc_recu: '#4ade80',
+};
+
+document.querySelectorAll('#contactFilters .chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('#contactFilters .chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    contactFilter = chip.dataset.filter;
+    renderContacts();
+  });
+});
+document.querySelectorAll('#etapeFilters .chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('#etapeFilters .chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    etapeFilter = chip.dataset.etape;
+    renderContacts();
+  });
+});
+
+// Restore view state on init
+if (contactView === 'expanded') {
+  document.getElementById('viewCompact').classList.remove('active');
+  document.getElementById('viewExpanded').classList.add('active');
+}
+
+/* =====================================================
+   DOSSIERS
+   ===================================================== */
+let dossierFilter = 'all';
+
+function renderDossiers() {
+  const list = document.getElementById('dossiersList');
+  let filtered = STORE.dossiers;
+  if (dossierFilter === 'nrp') filtered = STORE.dossiers.filter(d => d.statut.startsWith('nrp'));
+  if (dossierFilter === 'lead') filtered = STORE.dossiers.filter(d => d.statut.startsWith('lead'));
+
+  const total = STORE.dossiers.reduce((s, d) => s + (d.montant || 0), 0);
+  document.getElementById('statCount').textContent = STORE.dossiers.length;
+  document.getElementById('statTotal').textContent = formatMoney(total);
+
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="empty">
+      <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+      <div>Aucun dossier validé</div>
+      <div style="font-size:12px; margin-top:6px;">Validez un contact pour le faire apparaître ici</div>
+    </div>`;
+    return;
+  }
+
+  const sorted = [...filtered].sort((a,b) => b.validated - a.validated);
+  list.innerHTML = sorted.map(d => `
+    <div class="card">
+      <div class="card-header">
+        <div style="flex:1;">
+          <div class="card-title">${escapeHtml(d.nom)}</div>
+          <div class="card-sub">
+            <span class="badge ${d.statut}">${STATUS_LABELS[d.statut]}</span>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:20px; font-weight:700; color:var(--accent);">+${d.montant}€</div>
+          <div style="font-size:11px; color:var(--text-faint); margin-top:2px;">${formatDatePrecise(d.validated)}</div>
+        </div>
+      </div>
+      ${d.tel ? `<div class="card-row">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"/></svg>
+        <a href="tel:${d.tel}" class="phone-link">${escapeHtml(d.tel)}</a>
+      </div>` : ''}
+      <div class="item-actions">
+        <button class="danger" onclick="deleteDossier('${d.id}')">Supprimer</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+async function deleteDossier(id) {
+  const ok = await askConfirm('Supprimer ce dossier ?', 'Le montant ne sera plus compté dans le CA.', 'Supprimer', 'background:#ef4444; color:white; font-weight:600;');
+  if (!ok) return;
+  STORE.dossiers = STORE.dossiers.filter(d => d.id !== id);
+  save();
+  renderDossiers();
+  toast('Dossier supprimé');
+}
+
+document.querySelectorAll('#dossierFilters .chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('#dossierFilters .chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    dossierFilter = chip.dataset.filter;
+    renderDossiers();
+  });
+});
+
+/* =====================================================
+   PLANNING
+   ===================================================== */
+function renderPlanning() {
+  const withRdv = STORE.contacts.filter(c => c.rdv_date).sort((a,b) =>
+    (a.rdv_date + (a.rdv_heure || '00:00')).localeCompare(b.rdv_date + (b.rdv_heure || '00:00'))
+  );
+
+  const today = new Date().toISOString().split('T')[0];
+  const todayCount = withRdv.filter(c => c.rdv_date === today).length;
+  const weekFromNow = new Date(); weekFromNow.setDate(weekFromNow.getDate() + 7);
+  const weekStr = weekFromNow.toISOString().split('T')[0];
+  const weekCount = withRdv.filter(c => c.rdv_date >= today && c.rdv_date <= weekStr).length;
+  document.getElementById('planToday').textContent = todayCount;
+  document.getElementById('planWeek').textContent = weekCount;
+
+  const list = document.getElementById('planningList');
+  if (withRdv.length === 0) {
+    list.innerHTML = `<div class="empty">
+      <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      <div>Aucun rendez-vous planifié</div>
+      <div style="font-size:12px; margin-top:6px;">Ajoutez un RDV depuis Contacts</div>
+    </div>`;
+    return;
+  }
+
+  // Group by date
+  const grouped = {};
+  withRdv.forEach(c => {
+    if (!grouped[c.rdv_date]) grouped[c.rdv_date] = [];
+    grouped[c.rdv_date].push(c);
+  });
+
+  list.innerHTML = Object.entries(grouped).map(([date, contacts]) => `
+    <div class="cal-day">
+      <div class="cal-date">${formatDateLong(date)}</div>
+      ${contacts.map(c => `
+        <div class="cal-event" onclick="openContactModal('${c.id}')">
+          <div class="cal-time">${c.rdv_heure || '—'}</div>
+          <div style="flex:1; min-width:0;">
+            <div class="cal-name">${escapeHtml(c.nom)}</div>
+            ${c.tel ? `<div class="cal-phone">${escapeHtml(c.tel)}</div>` : ''}
+          </div>
+          <span class="badge ${c.statut}">${STATUS_LABELS[c.statut].split(' ')[0]}</span>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+/* =====================================================
+   ÉLIGIBILITÉ — LIVE COMPUTE
+   ===================================================== */
+function updateEligLive() {
+  const cp = document.getElementById('e_cp').value.trim();
+  const pers = parseInt(document.getElementById('e_pers').value) || 0;
+  const rfr = parseInt(document.getElementById('e_rfr').value) || 0;
+  const target = document.getElementById('eligResult');
+
+  if (!cp || cp.length < 2) {
+    target.innerHTML = '';
+    return;
+  }
+
+  const zone = getZone(cp);
+  const idf = isIDF(cp);
+  const profile = (pers && rfr) ? getRFRProfile(cp, pers, rfr) : null;
+
+  let html = `<div class="elig-result">
+    <h3>Résultat éligibilité</h3>`;
+
+  if (zone) {
+    html += `<div class="elig-row">
+      <span class="k">Zone climatique</span>
+      <span class="v"><span class="badge zone-${zone.toLowerCase()}">${zone}</span></span>
+    </div>`;
+  } else {
+    html += `<div class="elig-row">
+      <span class="k">Zone climatique</span>
+      <span class="v" style="color:var(--text-faint)">Code postal non reconnu</span>
+    </div>`;
+  }
+
+  html += `<div class="elig-row">
+    <span class="k">Région</span>
+    <span class="v">${idf ? 'Île-de-France' : 'Hors Île-de-France'}</span>
+  </div>`;
+
+  if (profile) {
+    html += `<div class="elig-row">
+      <span class="k">Profil RFR</span>
+      <span class="v"><span class="badge ${profile.profile}">${profile.label}</span></span>
+    </div>`;
+    html += `<div class="elig-row">
+      <span class="k">Plafond profil</span>
+      <span class="v">${formatMoney(profile.max)}</span>
+    </div>`;
+    html += `<div class="elig-row">
+      <span class="k">CEE 1€</span>
+      <span class="v" style="color:${profile.profile === 'rose' ? 'var(--red)' : 'var(--green)'}">
+        ${profile.profile === 'rose' ? 'Non éligible' : 'Éligible'}
+      </span>
+    </div>`;
+  } else if (pers && !rfr) {
+    html += `<div class="elig-row"><span class="k">Saisir le RFR</span><span class="v" style="color:var(--text-faint)">en attente</span></div>`;
+  } else if (!pers) {
+    html += `<div class="elig-row"><span class="k">Saisir nb personnes & RFR</span><span class="v" style="color:var(--text-faint)">en attente</span></div>`;
+  }
+
+  // Show all 4 thresholds for context
+  if (pers >= 1) {
+    const table = idf ? RFR_IDF : RFR_HORS;
+    const idx = Math.min(Math.max(pers - 1, 0), 4);
+    const supp = pers > 5 ? (pers - 5) : 0;
+    const bleu = table.bleu[idx] + supp * table.bleu[5];
+    const jaune = table.jaune[idx] + supp * table.jaune[5];
+    const viol = table.violet[idx] + supp * table.violet[5];
+    html += `<div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border);">
+      <div style="font-size:11px; color:var(--text-dim); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.05em;">Plafonds pour ${pers} pers. (${idf?'IDF':'Hors IDF'})</div>
+      <div class="elig-row"><span class="k"><span class="badge bleu">Très modeste</span></span><span class="v">≤ ${formatMoney(bleu)}</span></div>
+      <div class="elig-row"><span class="k"><span class="badge jaune">Modeste</span></span><span class="v">≤ ${formatMoney(jaune)}</span></div>
+      <div class="elig-row"><span class="k"><span class="badge violet">Intermédiaire</span></span><span class="v">≤ ${formatMoney(viol)}</span></div>
+      <div class="elig-row"><span class="k"><span class="badge rose">Aisé</span></span><span class="v">> ${formatMoney(viol)}</span></div>
+    </div>`;
+  }
+
+  html += `</div>`;
+  target.innerHTML = html;
+}
+
+['e_cp','e_pers','e_rfr'].forEach(id => {
+  document.getElementById(id).addEventListener('input', updateEligLive);
+});
+
+function resetElig() {
+  ['e_prenom','e_nom','e_tel','e_email','e_adresse','e_ville','e_cp','e_anciennete','e_superficie','e_localchaud','e_pers','e_rfr'].forEach(id => document.getElementById(id).value = '');
+  ['e_statut','e_mode','e_emetteur','e_alim'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('eligResult').innerHTML = '';
+  toast('Formulaire réinitialisé');
+}
+
+function getEligData() {
+  return {
+    prenom: document.getElementById('e_prenom').value.trim(),
+    nom: document.getElementById('e_nom').value.trim(),
+    tel: document.getElementById('e_tel').value.trim(),
+    email: document.getElementById('e_email').value.trim(),
+    adresse: document.getElementById('e_adresse').value.trim(),
+    ville: document.getElementById('e_ville').value.trim(),
+    cp: document.getElementById('e_cp').value.trim(),
+    statut: document.getElementById('e_statut').value,
+    anciennete: document.getElementById('e_anciennete').value,
+    superficie: document.getElementById('e_superficie').value,
+    mode: document.getElementById('e_mode').value,
+    emetteur: document.getElementById('e_emetteur').value,
+    localchaud: document.getElementById('e_localchaud').value.trim(),
+    alim: document.getElementById('e_alim').value,
+    pers: document.getElementById('e_pers').value,
+    rfr: document.getElementById('e_rfr').value,
+  };
+}
+
+function saveFiche() {
+  const d = getEligData();
+  if (!d.nom || !d.prenom) { toast('Nom et prénom requis'); return; }
+  if (!d.cp) { toast('Code postal requis'); return; }
+  const zone = getZone(d.cp);
+  const idf = isIDF(d.cp);
+  const profile = (d.pers && d.rfr) ? getRFRProfile(d.cp, parseInt(d.pers), parseInt(d.rfr)) : null;
+  const eligible = profile && profile.profile !== 'rose';
+
+  STORE.fiches.push({
+    id: Date.now().toString(),
+    ...d,
+    zone, idf, profile, eligible,
+    created: Date.now(),
+  });
+  save();
+  toast('Fiche enregistrée');
+  resetElig();
+  switchPage('fiches');
+}
+
+/* =====================================================
+   FICHES
+   ===================================================== */
+function renderFiches() {
+  const list = document.getElementById('fichesList');
+  document.getElementById('fichesCount').textContent = STORE.fiches.length;
+  document.getElementById('fichesEligible').textContent = STORE.fiches.filter(f => f.eligible).length;
+
+  if (STORE.fiches.length === 0) {
+    list.innerHTML = `<div class="empty">
+      <svg fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      <div>Aucune fiche enregistrée</div>
+      <div style="font-size:12px; margin-top:6px;">Faites un test d'éligibilité pour commencer</div>
+    </div>`;
+    return;
+  }
+
+  const sorted = [...STORE.fiches].sort((a,b) => b.created - a.created);
+  list.innerHTML = sorted.map(f => `
+    <div class="card">
+      <div class="card-header">
+        <div style="flex:1;">
+          <div class="card-title">${escapeHtml((f.prenom || '') + ' ' + (f.nom || ''))}</div>
+          <div class="card-sub">${escapeHtml(f.ville || '')} ${f.cp ? '(' + escapeHtml(f.cp) + ')' : ''}</div>
+          <div style="margin-top:6px; display:flex; gap:4px; flex-wrap:wrap;">
+            ${f.zone ? `<span class="badge zone-${f.zone.toLowerCase()}">${f.zone}</span>` : ''}
+            ${f.profile ? `<span class="badge ${f.profile.profile}">${f.profile.label}</span>` : ''}
+            ${f.eligible !== undefined ? `<span class="badge" style="background:${f.eligible?'#1a2e1a':'#3d1717'}; color:${f.eligible?'var(--green)':'var(--red)'}; border:1px solid ${f.eligible?'#2a4a2a':'#6a1f1f'};">${f.eligible?'Éligible':'Non éligible'}</span>` : ''}
+          </div>
+        </div>
+      </div>
+      <div class="item-actions">
+        <button class="ghost" onclick="viewFiche('${f.id}')">Détails</button>
+        <button class="ghost" onclick="downloadFiche('${f.id}')">Télécharger</button>
+        <button class="ghost" onclick="shareFiche('${f.id}')">Partager</button>
+        <button class="danger" onclick="deleteFiche('${f.id}')">×</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+let currentFicheId = null;
+
+function viewFiche(id) {
+  const f = STORE.fiches.find(x => x.id === id);
+  if (!f) return;
+  currentFicheId = id;
+  const body = document.getElementById('ficheDetailsBody');
+
+  const eligibleBadge = f.eligible
+    ? '<span style="background:#1a2e1a; color:var(--green); border:1px solid #2a4a2a; padding:6px 12px; border-radius:8px; font-weight:600; font-size:13px;">✓ ÉLIGIBLE CEE 1€</span>'
+    : '<span style="background:#3d1717; color:var(--red); border:1px solid #6a1f1f; padding:6px 12px; border-radius:8px; font-weight:600; font-size:13px;">✗ NON ÉLIGIBLE CEE</span>';
+
+  body.innerHTML = `
+    <div style="text-align:center; margin-bottom:20px; padding:14px; background:var(--bg-elev); border-radius:12px;">
+      ${eligibleBadge}
+      <div style="font-size:11px; color:var(--text-faint); margin-top:8px;">Créée le ${formatDatePrecise(f.created)}</div>
+    </div>
+
+    ${detailSection('Identité', [
+      ['Prénom', f.prenom],
+      ['Nom', f.nom],
+      ['Téléphone', f.tel, f.tel ? `<a href="tel:${f.tel}" class="phone-link">${escapeHtml(f.tel)}</a>` : '—'],
+      ['Email', f.email],
+    ])}
+
+    ${detailSection('Adresse des travaux', [
+      ['Adresse', f.adresse],
+      ['Ville', f.ville],
+      ['Code postal', f.cp],
+    ])}
+
+    ${detailSection('Statut', [
+      ['Type', f.statut],
+      ['Ancienneté', f.anciennete ? f.anciennete + ' ans' : ''],
+      ['Superficie', f.superficie ? f.superficie + ' m²' : ''],
+    ])}
+
+    ${detailSection('Chauffage actuel', [
+      ['Mode', f.mode],
+      ['Émetteurs', f.emetteur],
+      ['Localisation chaudière', f.localchaud],
+      ['Alimentation', f.alim],
+    ])}
+
+    ${detailSection('Foyer fiscal', [
+      ['Nb personnes', f.pers],
+      ['RFR', f.rfr ? formatMoney(parseInt(f.rfr)) : ''],
+    ])}
+
+    ${detailSection('Éligibilité CEE', [
+      ['Zone climatique', f.zone, f.zone ? `<span class="badge zone-${f.zone.toLowerCase()}">${f.zone}</span>` : '—'],
+      ['Région', f.idf ? 'Île-de-France' : 'Hors Île-de-France'],
+      ['Profil RFR', f.profile ? f.profile.label : '', f.profile ? `<span class="badge ${f.profile.profile}">${f.profile.label}</span>` : '—'],
+      ['Plafond du profil', f.profile ? formatMoney(f.profile.max) : ''],
+    ])}
+  `;
+  document.getElementById('ficheDetailsModal').classList.add('show');
+}
+
+function detailSection(title, rows) {
+  const filled = rows.filter(r => r[1]);
+  if (filled.length === 0) return '';
+  return `
+    <div style="margin-bottom:16px;">
+      <div style="font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:0.08em; font-weight:600; margin-bottom:8px;">${title}</div>
+      <div style="background:var(--bg-elev); border-radius:10px; overflow:hidden;">
+        ${filled.map((r, i) => `
+          <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; ${i < filled.length-1 ? 'border-bottom:1px solid var(--border);' : ''}">
+            <span style="color:var(--text-dim); font-size:13px;">${r[0]}</span>
+            <span style="font-weight:500; font-size:14px; text-align:right; max-width:60%; word-break:break-word;">${r[2] || escapeHtml(String(r[1]))}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+function closeFicheDetails() {
+  document.getElementById('ficheDetailsModal').classList.remove('show');
+  currentFicheId = null;
+}
+
+/* =====================================================
+   PDF GENERATION
+   ===================================================== */
+function generateFichePDF(f) {
+  if (!window.jspdf) {
+    toast('Bibliothèque PDF en cours de chargement…');
+    return null;
+  }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+  const W = 210, H = 297;
+  const MARGIN = 18;
+  let y = 0;
+
+  // --- HEADER BAND ---
+  doc.setFillColor(15, 15, 15);
+  doc.rect(0, 0, W, 38, 'F');
+
+  doc.setTextColor(212, 165, 116);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(22);
+  doc.text('STERRENOV', MARGIN, 18);
+
+  doc.setTextColor(180, 180, 180);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text('Fiche d\'éligibilité  ·  Pompe à chaleur  ·  CEE 1€', MARGIN, 25);
+
+  // Date in header right
+  doc.setFontSize(8);
+  doc.setTextColor(140, 140, 140);
+  doc.text(formatDatePrecise(f.created), W - MARGIN, 25, { align: 'right' });
+
+  // Eligibility tag in header
+  const eligColor = f.eligible ? [74, 222, 128] : [239, 68, 68];
+  const eligText = f.eligible ? 'ELIGIBLE CEE 1€' : 'NON ELIGIBLE';
+  doc.setFillColor(eligColor[0], eligColor[1], eligColor[2]);
+  doc.roundedRect(W - MARGIN - 42, 8, 42, 8, 2, 2, 'F');
+  doc.setTextColor(15, 15, 15);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.text(eligText, W - MARGIN - 21, 13.5, { align: 'center' });
+
+  y = 50;
+
+  // --- CLIENT NAME (big) ---
+  doc.setTextColor(20, 20, 20);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(18);
+  const fullName = `${f.prenom || ''} ${f.nom || ''}`.trim() || '—';
+  doc.text(fullName, MARGIN, y);
+  y += 6;
+
+  if (f.tel || f.email) {
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.setTextColor(110, 110, 110);
+    const contactLine = [f.tel, f.email].filter(Boolean).join('  ·  ');
+    doc.text(contactLine, MARGIN, y);
+    y += 5;
+  }
+
+  y += 6;
+
+  // Helper to draw a section
+  function drawSection(title, rows) {
+    const filled = rows.filter(r => r[1] !== undefined && r[1] !== '' && r[1] !== null);
+    if (filled.length === 0) return;
+
+    // Section title
+    doc.setFillColor(248, 248, 248);
+    doc.rect(MARGIN, y, W - MARGIN * 2, 7, 'F');
+    doc.setTextColor(80, 80, 80);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8);
+    doc.text(title.toUpperCase(), MARGIN + 3, y + 4.8);
+
+    // Accent line
+    doc.setFillColor(212, 165, 116);
+    doc.rect(MARGIN, y, 2, 7, 'F');
+
+    y += 10;
+
+    // Rows
+    doc.setFont('helvetica', 'normal');
+    filled.forEach((r, i) => {
+      doc.setTextColor(130, 130, 130);
+      doc.setFontSize(9);
+      doc.text(r[0], MARGIN + 2, y);
+
+      doc.setTextColor(30, 30, 30);
+      doc.setFontSize(10);
+      doc.setFont('helvetica', 'bold');
+      const val = String(r[1]);
+      const splitted = doc.splitTextToSize(val, 100);
+      doc.text(splitted, W - MARGIN - 2, y, { align: 'right' });
+      doc.setFont('helvetica', 'normal');
+
+      y += Math.max(5, splitted.length * 4.5);
+      if (i < filled.length - 1) {
+        doc.setDrawColor(235, 235, 235);
+        doc.line(MARGIN + 2, y - 1, W - MARGIN - 2, y - 1);
+        y += 1.5;
+      }
+    });
+    y += 7;
+
+    if (y > H - 40) {
+      doc.addPage();
+      y = MARGIN;
+    }
+  }
+
+  drawSection('Identité', [
+    ['Prénom', f.prenom],
+    ['Nom', f.nom],
+    ['Téléphone', f.tel],
+    ['Email', f.email],
+  ]);
+
+  drawSection('Adresse des travaux', [
+    ['Adresse', f.adresse],
+    ['Ville', f.ville],
+    ['Code postal', f.cp],
+  ]);
+
+  drawSection('Statut occupant', [
+    ['Type', f.statut],
+    ['Ancienneté', f.anciennete ? f.anciennete + ' ans' : ''],
+    ['Superficie', f.superficie ? f.superficie + ' m²' : ''],
+  ]);
+
+  drawSection('Chauffage actuel', [
+    ['Mode', f.mode],
+    ['Émetteurs', f.emetteur],
+    ['Localisation chaudière', f.localchaud],
+    ['Alimentation', f.alim],
+  ]);
+
+  drawSection('Foyer fiscal', [
+    ['Nb personnes sur avis', f.pers],
+    ['RFR', f.rfr ? formatMoney(parseInt(f.rfr)) : ''],
+  ]);
+
+  drawSection('Éligibilité CEE', [
+    ['Zone climatique', f.zone],
+    ['Région', f.idf ? 'Île-de-France' : 'Hors Île-de-France'],
+    ['Profil RFR', f.profile ? f.profile.label : ''],
+    ['Plafond profil', f.profile ? formatMoney(f.profile.max) : ''],
+  ]);
+
+  // --- VERDICT BAND ---
+  if (y > H - 40) { doc.addPage(); y = MARGIN; }
+  y += 4;
+  const verdictBg = f.eligible ? [232, 252, 235] : [255, 232, 232];
+  const verdictTxt = f.eligible ? [22, 101, 52] : [127, 29, 29];
+  doc.setFillColor(verdictBg[0], verdictBg[1], verdictBg[2]);
+  doc.roundedRect(MARGIN, y, W - MARGIN * 2, 22, 3, 3, 'F');
+  doc.setTextColor(verdictTxt[0], verdictTxt[1], verdictTxt[2]);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(14);
+  doc.text(f.eligible ? '✓ DOSSIER ELIGIBLE AU DISPOSITIF CEE 1€' : '✗ DOSSIER NON ELIGIBLE AU DISPOSITIF CEE 1€', W/2, y + 9, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  if (f.eligible && f.profile) {
+    doc.text(`Profil ${f.profile.label} · Plafond ${formatMoney(f.profile.max)}`, W/2, y + 16, { align: 'center' });
+  } else if (!f.eligible && f.profile) {
+    doc.text(`Profil ${f.profile.label} · RFR > ${formatMoney(f.profile.max)}`, W/2, y + 16, { align: 'center' });
+  }
+
+  // Footer
+  doc.setTextColor(160, 160, 160);
+  doc.setFontSize(7.5);
+  doc.text('STERRENOV · Document généré automatiquement', W/2, H - 10, { align: 'center' });
+
+  return doc;
+}
+
+function downloadCurrentFichePDF() {
+  if (!currentFicheId) return;
+  const f = STORE.fiches.find(x => x.id === currentFicheId);
+  if (!f) return;
+  const doc = generateFichePDF(f);
+  if (!doc) return;
+  const filename = `fiche_${(f.nom || 'client').replace(/\s+/g,'_')}_${new Date(f.created).toISOString().split('T')[0]}.pdf`;
+  doc.save(filename);
+  toast('PDF téléchargé');
+}
+
+async function shareCurrentFichePDF() {
+  if (!currentFicheId) return;
+  const f = STORE.fiches.find(x => x.id === currentFicheId);
+  if (!f) return;
+  const doc = generateFichePDF(f);
+  if (!doc) return;
+  const filename = `fiche_${(f.nom || 'client').replace(/\s+/g,'_')}.pdf`;
+
+  try {
+    const blob = doc.output('blob');
+    const file = new File([blob], filename, { type: 'application/pdf' });
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      await navigator.share({ files: [file], title: `Fiche ${f.nom}` });
+      toast('Partagé');
+    } else {
+      // Fallback: open in new tab / download
+      doc.save(filename);
+      toast('PDF téléchargé (partage indisponible)');
+    }
+  } catch(e) {
+    if (e.name !== 'AbortError') {
+      console.warn(e);
+      doc.save(filename);
+      toast('PDF téléchargé');
+    }
+  }
+}
+
+// Old function shims kept for compatibility
+function downloadFiche(id) {
+  currentFicheId = id;
+  downloadCurrentFichePDF();
+}
+async function shareFiche(id) {
+  currentFicheId = id;
+  await shareCurrentFichePDF();
+}
+
+async function deleteFiche(id) {
+  const ok = await askConfirm('Supprimer cette fiche ?', 'Cette action est définitive.', 'Supprimer', 'background:#ef4444; color:white; font-weight:600;');
+  if (!ok) return;
+  STORE.fiches = STORE.fiches.filter(f => f.id !== id);
+  save();
+  renderFiches();
+  toast('Fiche supprimée');
+}
+
+/* =====================================================
+   IMPORT / EXPORT
+   ===================================================== */
+function exportAllData() {
+  const blob = new Blob([JSON.stringify(STORE, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `sterrenov_backup_${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast('Sauvegarde téléchargée');
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      const ok = await askConfirm('Importer ces données ?', 'Cette action remplacera toutes les données existantes.', 'Importer', 'background:var(--accent); color:#0a0a0a; font-weight:700;');
+      if (!ok) return;
+      if (data.contacts) STORE.contacts = data.contacts;
+      if (data.dossiers) STORE.dossiers = data.dossiers;
+      if (data.fiches) STORE.fiches = data.fiches;
+      save();
+      renderDossiers(); renderContacts(); renderFiches();
+      toast('Données importées');
+    } catch(err) {
+      toast('Fichier invalide');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+/* =====================================================
+   UTILS
+   ===================================================== */
+function escapeHtml(s) {
+  if (!s) return '';
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function formatMoney(n) {
+  return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(n);
+}
+function formatDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('fr-FR', { weekday:'short', day:'numeric', month:'short' });
+}
+function formatDateShort(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  const today = new Date(); today.setHours(0,0,0,0);
+  const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+  if (d.getTime() === today.getTime()) return 'Auj.';
+  if (d.getTime() === tomorrow.getTime()) return 'Demain';
+  return d.toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit' });
+}
+function formatDateLong(iso) {
+  if (!iso) return '';
+  const d = new Date(iso + 'T00:00:00');
+  return d.toLocaleDateString('fr-FR', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+}
+function formatRelative(ts) {
+  const diff = Date.now() - ts;
+  const days = Math.floor(diff / 86400000);
+  if (days === 0) return 'aujourd\'hui';
+  if (days === 1) return 'hier';
+  if (days < 7) return `il y a ${days}j`;
+  return new Date(ts).toLocaleDateString('fr-FR', { day:'numeric', month:'short' });
+}
+function formatDatePrecise(ts) {
+  const d = new Date(ts);
+  return d.toLocaleDateString('fr-FR', { day:'2-digit', month:'2-digit', year:'numeric' }) +
+    ' · ' +
+    d.toLocaleTimeString('fr-FR', { hour:'2-digit', minute:'2-digit' });
+}
+
+/* =====================================================
+   ADDRESS AUTOCOMPLETE (API BAN - adresse.data.gouv.fr)
+   ===================================================== */
+let addrTimer = null;
+const addrInput = document.getElementById('e_adresse');
+const addrSuggest = document.getElementById('addressSuggestions');
+
+addrInput.addEventListener('input', () => {
+  const q = addrInput.value.trim();
+  clearTimeout(addrTimer);
+  if (q.length < 3) {
+    addrSuggest.innerHTML = '';
+    return;
+  }
+  addrSuggest.innerHTML = '<div class="autocomplete-loading">Recherche…</div>';
+  addrTimer = setTimeout(() => searchAddress(q), 300);
+});
+
+async function searchAddress(q) {
+  try {
+    const url = `https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(q)}&limit=6&autocomplete=1`;
+    const res = await fetch(url);
+    if (!res.ok) throw new Error('API error');
+    const data = await res.json();
+    if (!data.features || data.features.length === 0) {
+      addrSuggest.innerHTML = '<div class="autocomplete-loading">Aucun résultat</div>';
+      return;
+    }
+    addrSuggest.innerHTML = '<div class="autocomplete-list">' + data.features.map(f => {
+      const p = f.properties;
+      const main = p.name || '';
+      const sub = `${p.postcode || ''} ${p.city || ''}`.trim();
+      return `<div class="autocomplete-item" data-name="${escapeHtml(main)}" data-city="${escapeHtml(p.city || '')}" data-cp="${escapeHtml(p.postcode || '')}">
+        <div class="a-main">${escapeHtml(main)}</div>
+        <div class="a-sub">${escapeHtml(sub)}</div>
+      </div>`;
+    }).join('') + '</div>';
+    addrSuggest.querySelectorAll('.autocomplete-item').forEach(item => {
+      item.addEventListener('click', () => {
+        addrInput.value = item.dataset.name;
+        document.getElementById('e_ville').value = item.dataset.city;
+        document.getElementById('e_cp').value = item.dataset.cp;
+        addrSuggest.innerHTML = '';
+        updateEligLive();
+      });
+    });
+  } catch(err) {
+    addrSuggest.innerHTML = '<div class="autocomplete-loading">Erreur réseau — saisir manuellement</div>';
+  }
+}
+
+// Close suggestions when clicking outside
+document.addEventListener('click', (e) => {
+  if (!addrInput.contains(e.target) && !addrSuggest.contains(e.target)) {
+    addrSuggest.innerHTML = '';
+  }
+});
+
+/* =====================================================
+   INIT
+   ===================================================== */
+renderDossiers();
+document.getElementById('fabBtn').style.display = 'none'; // hidden on dossiers page
+
+// Close modal on backdrop click
+document.getElementById('contactModal').addEventListener('click', (e) => {
+  if (e.target.id === 'contactModal') closeContactModal();
+});
+document.getElementById('ficheDetailsModal').addEventListener('click', (e) => {
+  if (e.target.id === 'ficheDetailsModal') closeFicheDetails();
+});
+</script>
+
+</body>
+</html>
